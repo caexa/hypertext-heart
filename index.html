@@ -176,6 +176,16 @@ function secretEnding(){
     poemEl.classList.add('hidden');
     setTimeout(()=>{poemEl.innerHTML=PAGES.gone; poemEl.classList.remove('hidden');},150);
 }
+// audio
+<audio id="heartbeat-sound" preload="auto">
+    <source src="heartbeat.mp3" type="audio/mpeg">
+</audio>
+
+<audio id="static-sound" preload="auto">
+    <source src="static.mp3" type="audio/mpeg">
+</audio>
+
+<script src="audio.js"></script>
 
 </script>
 </body>
