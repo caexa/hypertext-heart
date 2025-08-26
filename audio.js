@@ -1,53 +1,81 @@
-// audio.js — specifically for heartbeat.mp3 and static.mp3
+// No-autoplay, explicit start via overlay/button
+const heartbeat = document.getElementById('beat');
+const staticSound = document.getElementById('stat');
+const poemEl = document.getElementById('poem');
 
-// Preload audio files
-const heartbeat = new Audio('heartbeat.mp3');
-const staticSound = new Audio('static.mp3');
+// ---- Config ----
+const HEARTBEAT_VOL_UP = 0.45;     // volume while there's movement (instant on start)
+const HEARTBEAT_VOL_DOWN = 0.08;   // volume while idle (text hidden)
+const STATIC_VOL = 0.22;           // volume for static after 404
+const HIDE_AFTER = 700;            // must match index.html idle threshold
 
-// Loop both
+// Setup
 heartbeat.loop = true;
 staticSound.loop = true;
+heartbeat.volume = 0;   // start fully silent
+staticSound.volume = 0; // start fully silent
 
-// Start silent
-heartbeat.volume = 0;
-staticSound.volume = 0;
+let started = false;
+let ended = false;
+let idleMs = 0;
+let hidden = false;
 
-// Smooth fade function
-function fadeAudio(audio, target, duration){
-    const step = (target - audio.volume) / (duration / 50);
-    const interval = setInterval(()=>{
-        audio.volume += step;
-        if ((step>0 && audio.volume>=target) || (step<0 && audio.volume<=target)){
-            audio.volume = target;
-            clearInterval(interval);
-        }
-    },50);
+// Exposed global starter for the overlay/button
+function startAudio() {
+  if (started) return;
+  started = true;
+  try {
+    heartbeat.muted = false;
+    heartbeat.volume = HEARTBEAT_VOL_UP; // jump straight to target
+    heartbeat.currentTime = 0;
+    const p = heartbeat.play();
+    if (p && typeof p.catch === 'function') {
+      p.catch((e) => {
+        console.log('Heartbeat play() failed:', e);
+        started = false; // allow retry
+      });
+    }
+  } catch (e) {
+    console.log('Error starting heartbeat:', e);
+    started = false;
+  }
 }
 
-// Start heartbeat
-function playHeartbeat(){
-    heartbeat.play().catch(()=>{}); // browsers require user gesture
-    fadeAudio(heartbeat,0.5,500);
-    fadeAudio(staticSound,0,300);
+// Movement ties heartbeat up; idle ties it down
+function onMove() {
+  if (ended) return;
+  idleMs = 0;
+  if (hidden) hidden = false;
+  if (started) {
+    heartbeat.volume = HEARTBEAT_VOL_UP; // keep it up on movement
+    staticSound.volume = 0;
+  }
 }
 
-// Fade to static
-function fadeToStatic(){
-    fadeAudio(heartbeat,0,500);
-    staticSound.play().catch(()=>{});
-    fadeAudio(staticSound,0.2,500);
+function tick() {
+  if (ended) return;
+  idleMs += 200;
+  if (idleMs > HIDE_AFTER && !hidden) {
+    hidden = true;
+    if (started) heartbeat.volume = HEARTBEAT_VOL_DOWN; // instant down
+  }
+  setTimeout(tick, 200);
 }
+setTimeout(tick, 200);
 
-// ---- USER INTERACTION REQUIRED ----
-// Audio will only start after the user clicks/touches the page
-function initAudio(){
-    playHeartbeat();
+// Detect the 404 page and switch to static
+const contentObserver = new MutationObserver(() => {
+  if (poemEl.querySelector('.broken404') || /404:\s*love not found/i.test(poemEl.textContent || '')) {
+    ended = true;
+    if (started) { heartbeat.volume = 0; heartbeat.pause(); }
+    staticSound.currentTime = 0;
+    const p = staticSound.play();
+    if (p && typeof p.catch === 'function') p.catch(()=>{});
+    staticSound.volume = STATIC_VOL;
+  }
+});
+contentObserver.observe(poemEl, { childList: true, subtree: true });
 
-    // Optional: after 10s idle fade to static automatically
-    setTimeout(fadeToStatic, 10000);
-}
-
-// Wait for first user gesture
-document.addEventListener('click', initAudio, {once:true});
-document.addEventListener('touchstart', initAudio, {once:true});
-document.addEventListener('keydown', initAudio, {once:true});
+// Movement listeners for volume behavior
+document.addEventListener('mousemove', onMove);
+document.addEventListener('touchmove', onMove, { passive: true });
