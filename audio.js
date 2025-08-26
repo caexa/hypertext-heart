@@ -6,55 +6,50 @@ const stat = document.getElementById('stat');
 beat.loop = true;
 stat.loop = true;
 
-// Initial volumes
-beat.volume = 0;   // start silent
-stat.volume = 0;   // start silent
+// Start silent
+beat.volume = 0;
+stat.volume = 0;
 
-let hidden = false; // track if text is hidden
-
-// Function to gradually fade volume
-function fadeAudio(audio, targetVolume, duration){
-    let startVol = audio.volume;
-    let step = (targetVolume - startVol) / (duration / 50); // update every 50ms
+// Fade helper
+function fadeAudio(audio, target, duration){
+    let step = (target - audio.volume) / (duration / 50); // every 50ms
     let interval = setInterval(()=>{
-        audio.volume = Math.min(1, Math.max(0, audio.volume + step));
-        if(Math.abs(audio.volume - targetVolume) < 0.01){
-            audio.volume = targetVolume;
+        audio.volume += step;
+        if((step>0 && audio.volume >= target) || (step<0 && audio.volume <= target)){
+            audio.volume = target;
             clearInterval(interval);
         }
-    }, 50);
+    },50);
 }
 
-// Start heartbeat when text becomes visible
-function onTextVisible(){
+// Called when poem is visible
+function startHeartbeat(){
     beat.play().catch(()=>{});
-    fadeAudio(beat, 0.5, 500); // fade in heartbeat to 50% volume
+    fadeAudio(beat,0.5,500); // fade in heartbeat
+    fadeAudio(stat,0,300);  // fade out static just in case
 }
 
-// Fade heartbeat out and fade static in
-function onTextHidden(){
-    fadeAudio(beat, 0, 500);   // heartbeat fades out
+// Called when poem fades
+function fadeToStatic(){
+    fadeAudio(beat,0,500);   // fade out heartbeat
     stat.play().catch(()=>{});
-    fadeAudio(stat, 0.2, 500); // static fades in to 20% volume
+    fadeAudio(stat,0.2,500); // fade in static
 }
 
-// Example usage with your poem show/hide
+// Example: connect to your show/hide logic
 const poemEl = document.getElementById('poem');
 
 function showPoem(){
     poemEl.classList.remove('hidden');
-    hidden = false;
-    onTextVisible();
+    startHeartbeat();
 }
 
 function hidePoem(){
     poemEl.classList.add('hidden');
-    hidden = true;
-    onTextHidden();
+    fadeToStatic();
 }
 
-// Connect this to your existing idle logic
-document.addEventListener('mousemove', ()=>{
-    if(hidden) showPoem();
+// Connect to your idle detection or mouse events
+document.addEventListener('mousemove',()=>{
+    if(poemEl.classList.contains('hidden')) showPoem();
 });
-
