@@ -1,65 +1,53 @@
-// audio.js 
+// audio.js — specifically for heartbeat.mp3 and static.mp3
 
-
+// Preload audio files
 const heartbeat = new Audio('heartbeat.mp3');
 const staticSound = new Audio('static.mp3');
 
-
+// Loop both
 heartbeat.loop = true;
 staticSound.loop = true;
 
-
+// Start silent
 heartbeat.volume = 0;
 staticSound.volume = 0;
 
-// Fade function
-function fadeAudio(audio, targetVol, duration) {
-    const step = (targetVol - audio.volume) / (duration / 50); // update every 50ms
-    const interval = setInterval(() => {
+// Smooth fade function
+function fadeAudio(audio, target, duration){
+    const step = (target - audio.volume) / (duration / 50);
+    const interval = setInterval(()=>{
         audio.volume += step;
-        if ((step > 0 && audio.volume >= targetVol) || (step < 0 && audio.volume <= targetVol)) {
-            audio.volume = targetVol;
+        if ((step>0 && audio.volume>=target) || (step<0 && audio.volume<=target)){
+            audio.volume = target;
             clearInterval(interval);
         }
-    }, 50);
+    },50);
 }
 
-// Play heartbeat when text is visible
-function startHeartbeat() {
-    heartbeat.play().catch(() => {});
-    fadeAudio(heartbeat, 0.5, 500); // fade in to 50% volume
-    fadeAudio(staticSound, 0, 300); // fade out static just in case
+// Start heartbeat
+function playHeartbeat(){
+    heartbeat.play().catch(()=>{}); // browsers require user gesture
+    fadeAudio(heartbeat,0.5,500);
+    fadeAudio(staticSound,0,300);
 }
 
-// Fade heartbeat out and fade static in
-function fadeToStatic() {
-    fadeAudio(heartbeat, 0, 500);      // heartbeat fades out
-    staticSound.play().catch(() => {}); // play static
-    fadeAudio(staticSound, 0.2, 500);  // fade in static to 20%
+// Fade to static
+function fadeToStatic(){
+    fadeAudio(heartbeat,0,500);
+    staticSound.play().catch(()=>{});
+    fadeAudio(staticSound,0.2,500);
 }
 
+// ---- USER INTERACTION REQUIRED ----
+// Audio will only start after the user clicks/touches the page
+function initAudio(){
+    playHeartbeat();
 
-const poemEl = document.getElementById('poem');
-
-// Show/hide triggers
-function showPoem() {
-    poemEl.classList.remove('hidden');
-    startHeartbeat();
+    // Optional: after 10s idle fade to static automatically
+    setTimeout(fadeToStatic, 10000);
 }
 
-function hidePoem() {
-    poemEl.classList.add('hidden');
-    fadeToStatic();
-}
-
-// Detect movement or interaction to show poem and play heartbeat
-document.addEventListener('mousemove', () => {
-    if (poemEl.classList.contains('hidden')) showPoem();
-});
-document.addEventListener('click', () => {
-    if (poemEl.classList.contains('hidden')) showPoem();
-});
-document.addEventListener('keydown', () => {
-    if (poemEl.classList.contains('hidden')) showPoem();
-});
-
+// Wait for first user gesture
+document.addEventListener('click', initAudio, {once:true});
+document.addEventListener('touchstart', initAudio, {once:true});
+document.addEventListener('keydown', initAudio, {once:true});
