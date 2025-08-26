@@ -1,50 +1,50 @@
 // audio.js 
 
 
-const heartbeatAudio = document.getElementById('heartbeat-sound');
-const staticAudio = document.getElementById('static-sound');
+const heartbeat = new Audio('heartbeat.mp3');
+const staticSound = new Audio('static.mp3');
 
 
-heartbeatAudio.loop = true;
-staticAudio.loop = true;
+heartbeat.loop = true;
+staticSound.loop = true;
 
 
-heartbeatAudio.volume = 0;
-staticAudio.volume = 0;
+heartbeat.volume = 0;
+staticSound.volume = 0;
 
-
-function fadeAudio(audio, targetVolume, duration) {
-    const step = (targetVolume - audio.volume) / (duration / 50);
+// Fade function
+function fadeAudio(audio, targetVol, duration) {
+    const step = (targetVol - audio.volume) / (duration / 50); // update every 50ms
     const interval = setInterval(() => {
         audio.volume += step;
-        if ((step > 0 && audio.volume >= targetVolume) || (step < 0 && audio.volume <= targetVolume)) {
-            audio.volume = targetVolume;
+        if ((step > 0 && audio.volume >= targetVol) || (step < 0 && audio.volume <= targetVol)) {
+            audio.volume = targetVol;
             clearInterval(interval);
         }
     }, 50);
 }
 
-
-function playHeartbeat() {
-    heartbeatAudio.play().catch(() => {});
-    fadeAudio(heartbeatAudio, 0.5, 500); // fade in heartbeat to 50%
-    fadeAudio(staticAudio, 0, 300);      // fade out static just in case
+// Play heartbeat when text is visible
+function startHeartbeat() {
+    heartbeat.play().catch(() => {});
+    fadeAudio(heartbeat, 0.5, 500); // fade in to 50% volume
+    fadeAudio(staticSound, 0, 300); // fade out static just in case
 }
 
-
+// Fade heartbeat out and fade static in
 function fadeToStatic() {
-    fadeAudio(heartbeatAudio, 0, 500);   // fade out heartbeat
-    staticAudio.play().catch(() => {});
-    fadeAudio(staticAudio, 0.2, 500);    // fade in static to 20%
+    fadeAudio(heartbeat, 0, 500);      // heartbeat fades out
+    staticSound.play().catch(() => {}); // play static
+    fadeAudio(staticSound, 0.2, 500);  // fade in static to 20%
 }
 
-// Example integration with your poem element
+
 const poemEl = document.getElementById('poem');
 
-
+// Show/hide triggers
 function showPoem() {
     poemEl.classList.remove('hidden');
-    playHeartbeat();
+    startHeartbeat();
 }
 
 function hidePoem() {
@@ -52,10 +52,14 @@ function hidePoem() {
     fadeToStatic();
 }
 
-
+// Detect movement or interaction to show poem and play heartbeat
 document.addEventListener('mousemove', () => {
     if (poemEl.classList.contains('hidden')) showPoem();
 });
-document.addEventListener('touchmove', () => {
+document.addEventListener('click', () => {
     if (poemEl.classList.contains('hidden')) showPoem();
-}, {passive:true});
+});
+document.addEventListener('keydown', () => {
+    if (poemEl.classList.contains('hidden')) showPoem();
+});
+
