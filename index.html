@@ -35,6 +35,7 @@ body{
 /* poem container */
 #poem{transition: opacity .5s ease;}
 .hidden{opacity:0;}
+<script src="audio.js"></script>
 
 /* clickable words */
 .link{color:var(--rose); text-decoration:none; cursor:pointer; position:relative; transition:color .25s, text-shadow .25s; white-space:nowrap;}
@@ -176,8 +177,7 @@ function secretEnding(){
     poemEl.classList.add('hidden');
     setTimeout(()=>{poemEl.innerHTML=PAGES.gone; poemEl.classList.remove('hidden');},150);
 }
-// audio
-<script src="audio.js"></script>
+
 
 </script>
 </body>
